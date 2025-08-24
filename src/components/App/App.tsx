@@ -7,7 +7,7 @@ import {
   useMutation,
   keepPreviousData,
 } from "@tanstack/react-query";
-import { fetchNotes, deleteNote, createNote } from "../../services/NoteService";
+import { fetchNotes, deleteNote, createNote } from "../../services/noteService";
 import SearchBox from "../SearchBox/SearchBox";
 import Pagination from "../Pagination/Pagination";
 import Loader from "../Loader/Loader";
