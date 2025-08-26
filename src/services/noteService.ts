@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Note } from "../types/note.ts";
+import type { Note, NoteTag } from "../types/note.ts";
 
 interface NotesHttpResponse {
   notes: Note[];
@@ -24,7 +24,13 @@ export async function fetchNotes(
   return response.data;
 }
 
-export async function createNote(newNote: Note) {
+interface NewNote {
+  title: string;
+  content: string;
+  tag: NoteTag;
+}
+
+export async function createNote(newNote: NewNote) {
   const response = await axios.post<Note>(
     "https://notehub-public.goit.study/api/notes",
     newNote,

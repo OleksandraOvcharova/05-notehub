@@ -1,13 +1,8 @@
-import toast from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { useState, useEffect } from "react";
-import { useDebouncedCallback } from "use-debounce";
-import {
-  useQuery,
-  useQueryClient,
-  useMutation,
-  keepPreviousData,
-} from "@tanstack/react-query";
-import { fetchNotes, deleteNote, createNote } from "../../services/noteService";
+import { useDebounce } from "use-debounce";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { fetchNotes } from "../../services/noteService";
 import SearchBox from "../SearchBox/SearchBox";
 import Pagination from "../Pagination/Pagination";
 import Loader from "../Loader/Loader";
@@ -16,32 +11,28 @@ import NoteList from "../NoteList/NoteList";
 import Modal from "../Modal/Modal";
 import NoteForm from "../NoteForm/NoteForm";
 import css from "./App.module.css";
-import type { Note } from "../../types/note";
 
 function App() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
 
-  const queryClient = useQueryClient();
+  const [debouncedSearch] = useDebounce(search, 300);
 
   const { data, isLoading, isError, isSuccess } = useQuery({
-    queryKey: ["notes", search, page],
-    queryFn: () => fetchNotes(search, page),
+    queryKey: ["notes", debouncedSearch, page],
+    queryFn: () => fetchNotes(debouncedSearch, page),
     placeholderData: keepPreviousData,
   });
 
-  const updateSearch = useDebouncedCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearch(e.target.value);
-      setPage(1);
-    },
-    300
-  );
+  const handleSearchUpdate = (newSearch: string) => {
+    setSearch(newSearch);
+    setPage(1);
+  };
 
   useEffect(() => {
     if (data && data.notes.length === 0) {
-      toast("No movies found for your request.");
+      toast("No notes found for your request.");
     }
   }, [data]);
 
@@ -51,32 +42,10 @@ function App() {
     setShowModal(false);
   };
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const handleDelete = (noteId: string) => {
-    deleteMutation.mutate(noteId);
-  };
-
-  const createMutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const handleCreate = (newNote: Note) => {
-    createMutation.mutate(newNote);
-  };
-
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
-        {<SearchBox onSearchUpdate={updateSearch} />}
+        {<SearchBox search={search} handleSearchUpdate={handleSearchUpdate} />}
         {isSuccess && totalPages > 1 && (
           <Pagination totalPages={totalPages} setPage={setPage} page={page} />
         )}
@@ -88,17 +57,13 @@ function App() {
       </header>
       {isLoading && <Loader />}
       {isError && <ErrorMessage />}
-      {data && data.notes.length > 0 && (
-        <NoteList notes={data.notes} handleDelete={handleDelete} />
-      )}
+      {data && data.notes.length > 0 && <NoteList notes={data.notes} />}
       {showModal && (
         <Modal onClose={handleModalClose}>
-          <NoteForm
-            handleCreate={handleCreate}
-            handleFormClose={handleModalClose}
-          />
+          <NoteForm handleFormClose={handleModalClose} />
         </Modal>
       )}
+      <Toaster />
     </div>
   );
 }

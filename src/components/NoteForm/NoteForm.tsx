@@ -1,11 +1,12 @@
 import css from "./NoteForm.module.css";
 import * as Yup from "yup";
+import { createNote } from "../../services/noteService";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Formik, Form, Field, ErrorMessage } from "formik";
-import type { FormikHelpers } from "formik";
-import type { Note } from "../../types/note";
+import type { NoteTag } from "../../types/note";
+import toast from "react-hot-toast";
 
 interface NoteFormProps {
-  handleCreate: (newNote: Note) => void;
   handleFormClose: () => void;
 }
 
@@ -20,21 +21,37 @@ const OrderFormSchema = Yup.object().shape({
     .oneOf(["Todo", "Work", "Personal", "Meeting", "Shopping"]),
 });
 
-const initialValues: Note = {
+interface FormValues {
+  title: string;
+  content: string;
+  tag: NoteTag;
+}
+
+const initialValues: FormValues = {
   title: "",
   content: "",
   tag: "Todo",
 };
 
-export default function NoteForm({
-  handleCreate,
-  handleFormClose,
-}: NoteFormProps) {
-  const handleSubmit = (values: Note, actions: FormikHelpers<Note>) => {
-    handleCreate(values);
-    actions.resetForm();
-    handleFormClose();
+export default function NoteForm({ handleFormClose }: NoteFormProps) {
+  const queryClient = useQueryClient();
+
+  const handleSubmit = (values: FormValues) => {
+    mutation.mutate(values);
   };
+
+  const mutation = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      toast.success("Note created!");
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      handleFormClose();
+    },
+    onError: () => {
+      toast.error("Something went wrong...");
+    },
+  });
+
   return (
     <Formik
       initialValues={initialValues}
@@ -80,7 +97,11 @@ export default function NoteForm({
           >
             Cancel
           </button>
-          <button type="submit" className={css.submitButton} disabled={false}>
+          <button
+            type="submit"
+            disabled={mutation.isPending}
+            className={css.submitButton}
+          >
             Create note
           </button>
         </div>
